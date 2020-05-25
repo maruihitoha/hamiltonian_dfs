@@ -30,7 +30,7 @@ public :
 	void hamilton_main();
 
 	// 도착한 곳에 갈곳이 있는지 없는지 체크
-	bool chk_zero(int pos);
+	bool chk_zero(int index);
 
 private :
 
