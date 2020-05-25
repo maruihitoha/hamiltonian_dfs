@@ -20,19 +20,22 @@ public :
 	// 인접행렬 출력
 	void show_matrix();
 
-	// dfs 메인
-	void dfs_main();
+	// 이미 한번 왔던 곳인지 체크
+	bool chk_path_exists(int destination, int index);
 
-	// dfs 서브
-	void dfs_sub(int vertex);
+	// 헤밀턴 패스 구하는 재귀함수 
+	bool hamilton_sub(int index);
 
-	// 전부 방문했는지 체크
-	bool chk_visited_all();
+	// 해밀턴 패스 메인 함수
+	void hamilton_main();
+
+	// 도착한 곳에 갈곳이 있는지 없는지 체크
+	bool chk_zero(int pos);
 
 private :
 
-	// 생성된 스트링들을 저장하는 벡터
-	vector<string> string_container;
+	// 경로 저장 배열
+	int* path;
 
 	// 생성되는 스트링
 	string generated_string;
@@ -43,12 +46,10 @@ private :
 	// 인접행렬을 나타내는 이차원 배열
 	int** adjacency_matrix;
 
-	// 방문 한 곳을 표시하는 배열
-	int* visited;
-
 	// 입력 받은 스펙트럼 배열의 원소의 갯수와 스펙트럼 스트링의 길이
 	int arr_size;
 	int str_size;
+
 };
 
 // 생성자
@@ -59,20 +60,19 @@ hamiltonian::hamiltonian(string input[], int arrsize)
 	this->spectrum = new string[arr_size];
 	this->str_size = input[0].length();
 	this->adjacency_matrix = new int*[arr_size];
-	this->visited = new int[arr_size];
-
+	this->path = new int[arr_size];
 
 	cout << "string size = " << str_size << endl;
 	cout << "arr size = " << arr_size << endl;
 
-	// 인접행렬 동적 할당, 스펙트럼 배열 생성, 방문 배열 초기화
+	// 인접행렬 동적 할당, 스펙트럼 배열 생성, 경로 배열 초기화
 	for (int i = 0; i < arr_size; i++) 
 	{
+		this->path[i] = -1;
 		this->spectrum[i] = input[i];
 		this->adjacency_matrix[i] = new int[arr_size];
-		visited[i] = 0;
 		for (int j = 0; j < arr_size; j++)
-		{		
+		{
 			this->adjacency_matrix[i][j] = 0;
 		}
 	}
@@ -87,7 +87,7 @@ hamiltonian::~hamiltonian()
 		delete[] adjacency_matrix[i];
 	}
 	delete[] spectrum;
-	delete[] visited;
+	delete[] path;
 }
 
 // 인접 행렬 생성
@@ -149,80 +149,94 @@ void hamiltonian::show_matrix()
 	}
 }
 
-// 방문이 다 되었는지 확인하는 함수
-bool hamiltonian::chk_visited_all()
-{
 
+// 도착한 곳에 갈곳이 있는지 없는지 체크
+bool hamiltonian::chk_zero(int index)
+{
+	int cnt = 0;
 	for (int i = 0; i < arr_size; i++)
 	{
-		if (this->visited[i] == 0)
+		if (adjacency_matrix[index][i] == 1)
 			return false;
+	}
+	return true;
+}
+
+
+// 이미 한번 왔던 곳인지 체크
+bool hamiltonian::chk_path_exists(int destination, int index)
+{
+	if (adjacency_matrix[ (path[index - 1]) ][destination] == 0)
+		return false;
+
+	for (int i = 0; i < index; i++)
+	{
+		if (path[i] == destination)
+		{
+			return false;
+		}
 	}
 
 	return true;
 }
 
-// dfs 탐색을 시작하는 메인 함수
-void hamiltonian::dfs_main()
+bool hamiltonian::hamilton_sub(int index)
 {
-
-	// 0의 위치에서 시작하는 경우, 1의 위치에서 시작하는 경우.. 등등 모두 실행
-	for (int i = 0; i < arr_size; i++)
+	// 만약 그래프의 존재하는 버텍스를 다 돌았을 경우
+	if (index == arr_size)
 	{
-		cout << i << " 번째 인덱스에서 시작" << endl<<endl;
-
-		generated_string = spectrum[i]; // 시작하는 스펙트럼
-		dfs_sub(i);						// dfs 시작
-
-		// 만약 모두 방문을 했고, 생성된 스트링의 길이가 의도한 것과 같은지
-		if (chk_visited_all() && (generated_string.length() == str_size + arr_size -1))
-		{
-			// 맞을 시 스트링 컨테이너에 푸시
-			this->string_container.push_back(generated_string);
-		}
-
-		// 방문 배열 초기화
-		for (int j = 0; j < arr_size; j++)
-		{
-			visited[j] = 0;
-		}
-
-		generated_string = "";
-		cout << endl << endl;
+		// 끝인지 확인, 끝일 경우 true 반환
+		if (chk_zero(path[index - 1]))
+			return true;
+		else
+			return false;
 	}
 
-	// 생성 된 스트링들 출력
-	if (string_container.size() != 0)
+	// 끝이 아닐 경우
+	for (int v = 0; v < arr_size; v++)
 	{
-		for (int i = 0; i < string_container.size(); i++)
+		// 이미 한번 갔었던 곳인지 체크, 아닐 경우 동작 수행
+		if (chk_path_exists(v, index))
 		{
-			cout << i+1 <<".\t"<<string_container[i] << endl;
+			path[index] = v;
+
+			if (hamilton_sub(index + 1) == true)
+				return true;
+
+			// true 반환 안됐을 경우 경로 삭제
+			path[index] = -1;
 		}
-		cout << endl << endl;
-	}
-	else
-	{
-		cout << "no string" << endl;
 	}
 
+	return false;
 }
 
-// 재귀적으로 스택의 역할을 수행하는 dfs 함수
-void hamiltonian:: dfs_sub(int vertex)
+
+void hamiltonian::hamilton_main()
 {
-	int i;
-	visited[vertex] = 1;
-	for (i = 0; i < arr_size; i++)
+
+	// 시작 인덱스 = path[0], 시작점은 반복문으로 모두 수행해봄
+	for (int j = 0; j < arr_size; j++)
 	{
-		if ((visited[i] == 0) && (adjacency_matrix[vertex][i] == 1))
+		path[0] = j;
+
+		// 경로를 찾았을 경우
+		if (hamilton_sub(1) == true)
 		{
-			cout << vertex << "에서\t" << i << "\t로 이동" << endl;
-			generated_string = generated_string + spectrum[i].substr(str_size-1, 1);
-			dfs_sub(i);
+			string answer = spectrum[j];
+			cout << "Path Found!! " << endl;
+			cout << j << " ";
+			for (int i = 1; i < arr_size; i++)
+			{
+				cout << path[i] << " ";
+				answer = answer + spectrum[path[i]].substr(str_size - 1, 1);
+			}
+			cout << endl << answer << endl << endl;
 		}
 	}
-
 }
+
+
 
 // 메인 함수.
 int main()
@@ -233,19 +247,24 @@ int main()
 	string spectrum_04[13] = { "ATGC", "TGCG", "GCGG", "CGGC", "GGCT", "GCTG", 
 							   "CTGT", "TGTA", "GTAT", "TATG", "ATGG", "TGGT", "GGTG" };
 
+	// 임의로 만든 스트링
+	string spectrum_05[9] = { "GAA", "ATC", "TCT", "AAG", "TCG", "CTT", "GTC", "AGT", "CGA" };
+
 	int size = sizeof(spectrum_01) / sizeof(spectrum_01[0]);
 	hamiltonian* s_01 = new hamiltonian(spectrum_01, size);
 
 	s_01->make_adj_matrix();
 	s_01->show_matrix();
-	s_01->dfs_main();
+	s_01->hamilton_main();
+
 ////////////////////////////////////////////////////////////////////////////////////
 	size = sizeof(spectrum_02) / sizeof(spectrum_02[0]);
 	hamiltonian* s_02 = new hamiltonian(spectrum_02, size);
 
 	s_02->make_adj_matrix();
 	s_02->show_matrix();
-	s_02->dfs_main();
+	s_02->hamilton_main();
+
 ////////////////////////////////////////////////////////////////////////////////////
 	size = sizeof(spectrum_03) / sizeof(spectrum_03[0]);
 	hamiltonian* s_03 = new hamiltonian(spectrum_03, size);
@@ -253,17 +272,28 @@ int main()
 
 	s_03->make_adj_matrix();
 	s_03->show_matrix();
-	s_03->dfs_main();
+	s_03->hamilton_main();
+
 ////////////////////////////////////////////////////////////////////////////////////
 	size = sizeof(spectrum_04) / sizeof(spectrum_04[0]);
 	hamiltonian* s_04 = new hamiltonian(spectrum_04, size);
 
 	s_04->make_adj_matrix();
 	s_04->show_matrix();
-	s_04->dfs_main();
+	s_04->hamilton_main();
+
 /////////////////////////////////////////////////////////////////////////////////////
+	size = sizeof(spectrum_05) / sizeof(spectrum_05[0]);
+	hamiltonian* s_05 = new hamiltonian(spectrum_05, size);
+
+	s_05->make_adj_matrix();
+	s_05->show_matrix();
+	s_05->hamilton_main();
+
+
 	delete s_01;
 	delete s_02;
 	delete s_03;
 	delete s_04;
+	delete s_05;
 }
